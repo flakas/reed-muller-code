@@ -1,5 +1,8 @@
 package rmcode
 
+import com.sksamuel.scrimage._
+import java.io._
+
 // RM(m=3, r=2).encode(1011010) => 00111001
 
 class RMCode(m: Int, r: Int) {
@@ -121,5 +124,21 @@ class RMCode(m: Int, r: Int) {
   def decodeText(data: (List[Vector[Int]], Int)): String = {
     // Iš baitų sekos sukonstruojama teksto eilutė
     new String(decodeBytes(data).toArray)
+  }
+
+  def encodeImage(file: File): (Int, Int, (List[Vector[Int]], Int)) = {
+    def intToBytes(x: Int): Array[Byte] = {
+      Array(x >> 24 & 0xFF, x >> 16 & 0xFF, x >> 8 & 0xFF, x & 0xFF).map(_.toByte)
+    }
+    val image = Image(file)
+    (image.width, image.height, encodeBytes(image.pixels.map(intToBytes(_)).toList.flatten))
+  }
+
+  def decodeImage(data: (Int, Int, (List[Vector[Int]], Int))): Image = {
+    def bytesToInt(bytes: List[Byte]): Int = {
+      (0 to 3).reverse.zip(bytes).map(x => x._2.toInt << 8 * x._1).sum
+    }
+    val pixels = decodeBytes(data._3).grouped(4).map(bytesToInt(_)).toArray
+    Image(data._1, data._2, pixels)
   }
 }
