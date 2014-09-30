@@ -1,9 +1,15 @@
 import java.io.File
 import rmcode._
 
-case class Config(m: Int = 1, r: Int = 1, errorRate: Double = 0.9, verbose: Boolean = false, debug: Boolean = false, inputText: String = "", inputFile: File = null, outputFile: File = null)
+import com.sksamuel.scrimage.Format
+
+case class Config(m: Int = 3, r: Int = 9, errorRate: Double = 0, verbose: Boolean = false, debug: Boolean = false, inputText: String = "", inputFile: File = null, outputFile: File = null)
 
 object Main extends App {
+  //val a = new rmcode.RMCode(3, 2)
+  //val c = a.encodeImage(new java.io.File("150px-wide.jpeg"))
+  //val d = a.decodeImage(c)
+  //d.writer(Format.JPEG).write(new java.io.File("test.jpeg"))
   val parser = new scopt.OptionParser[Config]("RMCode") {
     head("RMCode", "1.0")
     opt[Int]('m', "m") required() action { (x, c) =>
@@ -33,13 +39,19 @@ object Main extends App {
   }
   // parser.parse returns Option[C]
   parser.parse(args, Config()) map { config =>
-    val channel = new SymmetricChannel(new RMCode(config.m, config.r), config.errorRate)
+    val channel = new SymmetricChannel(config.errorRate, 2)
+    val code = new RMCode(config.m, config.r)
     if (config.inputFile != null && config.outputFile != null) {
-      val received = channel.transmitFile(config.inputFile)
+      val encodedImage = code.encodeImage(config.inputFile)
+      val transmittedImage = (encodedImage._1, encodedImage._2, (channel.transmit(encodedImage._3._1), encodedImage._3._2))
+      val decodedImage = code.decodeImage(transmittedImage)
+      decodedImage.writer(Format.JPEG).write(config.outputFile)
       println("Output file has been saved to ", config.outputFile)
     } else {
-      val received = channel.transmitText(config.inputText)
-      println(received)
+      val encodedText = code.encodeText(config.inputText)
+      val transmittedText = (channel.transmit(encodedText._1), encodedText._2)
+      val decodedText = code.decodeText(transmittedText)
+      println(decodedText)
     }
   } getOrElse {
     println("Bad arguments. Re-run this with '--help' to see correct invocation")

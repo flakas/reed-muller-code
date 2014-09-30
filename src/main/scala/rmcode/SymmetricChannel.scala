@@ -1,18 +1,17 @@
 package rmcode
 import java.io.File
 
-class SymmetricChannel(codeAlgorithm: RMCode, errorRate: Double) {
+class SymmetricChannel(errorRate: Double, q: Int) {
 
-  def transmit(data: Array[Byte]) = {
-    data
+  def transmit(data: List[Vector[Int]]) = {
+    val random = scala.util.Random
+    data.map(c => {
+      // Prie kiekvieno duomenų vektoriaus pridedamas klaidos vektorius,
+      // Kurio kiekvienas bitas turi errorRate tikimybę tapti 1
+      val errorVector = (1 to c.length)
+        .toVector
+        .map(x => if (random.nextDouble() <= errorRate) 1 else 0)
+        Space.add(c, errorVector, q)
+    })
   }
-
-  def transmitText(data: String) = {
-    transmit(data.getBytes())
-  }
-
-  def transmitFile(data: File) = {
-    //transmit(scala.io.Source.fromFile(data).map(_.toByte()).toArray())
-  }
-
 }

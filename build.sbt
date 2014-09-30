@@ -1,3 +1,11 @@
+import AssemblyKeys._
+
+assemblySettings
+
+jarName in assembly := "RMCode.jar"
+
+test in assembly := {}
+
 name := "rmcode"
 
 version := "1.0"
@@ -17,3 +25,4 @@ libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-core" % "1.4.1"
 libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-canvas" % "1.4.1"
 
 libraryDependencies += "com.sksamuel.scrimage" %% "scrimage-filters" % "1.4.1"
+
