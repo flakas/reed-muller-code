@@ -14,4 +14,9 @@ object Utils {
     factorial(n) / (factorial(k) * factorial(n - k))
   }
 
+  def textToBytes(text: String): List[Byte] = {
+    text.getBytes().toList
+  }
+
+  def bytesToText(data: List[Byte]): String = new String(data.toArray)
 }

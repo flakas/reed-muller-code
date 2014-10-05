@@ -95,7 +95,7 @@ class RMCode(m: Int, r: Int) {
     })
   }
 
-  def encodeBytes(data: List[Byte]) = {
+  def convertBytesToVectors(data: List[Byte]): (List[Vector[Int]], Int) = {
     def getBits(byte: Byte): List[Int] = {
       (0 to 7).map(i => (byte >> i) & 1).reverse.toList
     }
@@ -104,26 +104,37 @@ class RMCode(m: Int, r: Int) {
     // Bitų sąrašas sugrupuojamas į koduojamo vektoriaus dydžio vektorius ir koduojamas
     val bits = data.flatMap(getBits(_)).toVector
     val paddingBits = (matrixHeight - bits.size % matrixHeight)
-    (encode(bits.padTo(bits.size + paddingBits, 0).grouped(matrixHeight).toList), paddingBits)
+    (bits.padTo(bits.size + paddingBits, 0).grouped(matrixHeight).toList, paddingBits)
   }
 
-  def decodeBytes(data: (List[Vector[Int]], Int)): List[Byte] = {
+  def convertVectorsToBytes(data: (List[Vector[Int]], Int)): List[Byte] = {
     def getBytes(bits: List[Int]): Byte = {
       (0 to 7).zip(bits.reverse).map(x => x._2 << x._1).sum.toByte
     }
     // Dekoduoti bitai konvertuojami į baitų sąrašą
-    val bits = decode(data._1).flatten
+    val bits = data._1.flatten
     bits.take(bits.size - data._2).grouped(8).map(getBytes(_)).toList
+  }
+
+  def encodeBytes(data: List[Byte]) = {
+    val vectors = convertBytesToVectors(data)
+    (encode(vectors._1), vectors._2)
+  }
+
+  def decodeBytes(data: (List[Vector[Int]], Int)): List[Byte] = {
+    convertVectorsToBytes((decode(data._1), data._2))
   }
 
   def encodeText(text: String): (List[Vector[Int]], Int) = {
     // Tekstas išskaidomas baitais ir koduojamas
-    encodeBytes(text.getBytes().toList)
+    //encodeBytes(text.getBytes().toList)
+    encodeBytes(Utils.textToBytes(text))
   }
 
   def decodeText(data: (List[Vector[Int]], Int)): String = {
     // Iš baitų sekos sukonstruojama teksto eilutė
-    new String(decodeBytes(data).toArray)
+    Utils.bytesToText(decodeBytes(data))
+    //new String(decodeBytes(data).toArray)
   }
 
   def encodeImage(file: File): (Int, Int, (List[Vector[Int]], Int)) = {
