@@ -5,11 +5,13 @@ import java.io._
 
 // RM(m=3, r=2).encode(1011010) => 00111001
 
+// Reed-Muller kodas
 class RMCode(m: Int, r: Int) {
 
   val q = 2
   val n = scala.math.pow(q, m).toInt
 
+  // Generuojanti matrica
   val generatorMatrix = {
     val space = Space(m, q)
     // Sudaromi poerdviai pagal x_i komponentes
@@ -34,9 +36,10 @@ class RMCode(m: Int, r: Int) {
   val matrixHeight = generatorMatrix.size
   val matrixWidth = generatorMatrix.head.size
 
+  // Užkoduoja duomenų vektorių rinkinį RM kodu
   def encode(data: List[Vector[Int]]) : List[Vector[Int]]= {
     data.map(dataVector =>
-        if (dataVector.size != matrixHeight) throw new Exception("Data vector size " + dataVector.size + " should match matrix height of " + matrixHeight)
+        if (dataVector.size != matrixHeight) throw new Exception("Duomenų vektoriaus ilgis " + dataVector.size + " turėtų sutapti su matricos aukščiu " + matrixHeight)
         // Žodžio simbolį skaliariškai sudauginam su atitinkama generuojančios
         // matricos eilute ir visus gautus žodžius sudedam
         else dataVector.zip(generatorMatrix)
@@ -45,16 +48,15 @@ class RMCode(m: Int, r: Int) {
     )
   }
 
+  // Dekoduoja RM kodo vektorių rinkinį atgal į duomenų vektorių rinkinį
   def decode(data: List[Vector[Int]]) : List[Vector[Int]] = {
-    //println("------------------------------")
     val space = Space(m, q)
     // Sudaromi poerdviai pagal x_i komponentes
     val subspaces = (1 to m).map(Space.subspace(_, 0, m, q)).toList
     val inverseSubspaces = (1 to m).map(Space.subspace(_, 1, m, q)).toList
+    // Vektorius rekursyviai dekoduojamas su r, r-1, ... 0
     def decodeVector(c: Vector[Int], r: Int): Vector[Int] = {
-      //println("------- c --------")
-      //println(c)
-      if (c.size != matrixWidth) throw new Exception("Data vector size " + c.size + " should match matrix width of " + matrixWidth)
+      if (c.size != matrixWidth) throw new Exception("Duomenų vektoriaus ilgis" + c.size + " turėtų sutapti su matricos aukščiu " + matrixWidth)
       // Kiekvienam rinkiniui 1 <= i_1 < ... < i_r <= m ilgio r
       else {
         val coeficients = (1 to m).toVector.combinations(r).toVector.map(set => {
@@ -95,61 +97,61 @@ class RMCode(m: Int, r: Int) {
     })
   }
 
+  // Konvertuoja baitų seką į tinkamo dydžio vektorių seką, jei reikia
+  // pridedant perteklinių bitų
   def convertBytesToVectors(data: List[Byte]): (List[Vector[Int]], Int) = {
     def getBits(byte: Byte): List[Int] = {
       (0 to 7).map(i => (byte >> i) & 1).reverse.toList
     }
-    // Baitai konvertuojami į bitų sąrašą,
-    // Pridedama kiek reikia nulių, kad užpildyti koduojamus vektorius
-    // Bitų sąrašas sugrupuojamas į koduojamo vektoriaus dydžio vektorius ir koduojamas
+    // Baitai konvertuojami į bendrą bitų seką,
+    // Pridedama kiek reikia nulių, kad bitais pilnai užpildyti koduojamus vektorius
+    // Bitų seka sugrupuojamas į koduojamo vektoriaus dydžio vektorius kodavimui
     val bits = data.flatMap(getBits(_)).toVector
     val paddingBits = (matrixHeight - bits.size % matrixHeight)
     (bits.padTo(bits.size + paddingBits, 0).grouped(matrixHeight).toList, paddingBits)
   }
 
+  // Konvertuoja vektorių seką į baitų sąrašą, pašalina perteklinius bitus
   def convertVectorsToBytes(data: (List[Vector[Int]], Int)): List[Byte] = {
     def getBytes(bits: List[Int]): Byte = {
       (0 to 7).zip(bits.reverse).map(x => x._2 << x._1).sum.toByte
     }
-    // Dekoduoti bitai konvertuojami į baitų sąrašą
+    // Vektorių bitai sugrupuojami į baito (8 bitų) ilgio sekas, jos konvertuojamos į baitus
     val bits = data._1.flatten
     bits.take(bits.size - data._2).grouped(8).map(getBytes(_)).toList
   }
 
+  // Užkoduoja baitų seką RM kodu
   def encodeBytes(data: List[Byte]) = {
     val vectors = convertBytesToVectors(data)
     (encode(vectors._1), vectors._2)
   }
 
+  // Dekoduoja RM kodo vektorius į baitus
   def decodeBytes(data: (List[Vector[Int]], Int)): List[Byte] = {
     convertVectorsToBytes((decode(data._1), data._2))
   }
 
+  // Užkoduoja tekstą RM kodu
   def encodeText(text: String): (List[Vector[Int]], Int) = {
     // Tekstas išskaidomas baitais ir koduojamas
-    //encodeBytes(text.getBytes().toList)
     encodeBytes(Utils.textToBytes(text))
   }
 
+  // Dekoduoja RM kodo vektorius ir juos verčia į tekstą
   def decodeText(data: (List[Vector[Int]], Int)): String = {
     // Iš baitų sekos sukonstruojama teksto eilutė
     Utils.bytesToText(decodeBytes(data))
-    //new String(decodeBytes(data).toArray)
   }
 
+  // Užkoduoja paveiksliuko pikselius RM kodu
   def encodeImage(file: File): (Int, Int, (List[Vector[Int]], Int)) = {
-    def intToBytes(x: Int): Array[Byte] = {
-      Array(x >> 24 & 0xFF, x >> 16 & 0xFF, x >> 8 & 0xFF, x & 0xFF).map(_.toByte)
-    }
     val image = Image(file)
-    (image.width, image.height, encodeBytes(image.pixels.map(intToBytes(_)).toList.flatten))
+    (image.width, image.height, encodeBytes(Utils.imageToBytes(image)))
   }
 
+  // Dekoduoja užkoduotą paveiksliuką
   def decodeImage(data: (Int, Int, (List[Vector[Int]], Int))): Image = {
-    def bytesToInt(bytes: List[Byte]): Int = {
-      (0 to 3).reverse.zip(bytes).map(x => x._2.toInt << 8 * x._1).sum
-    }
-    val pixels = decodeBytes(data._3).grouped(4).map(bytesToInt(_)).toArray
-    Image(data._1, data._2, pixels)
+    Utils.bytesToImage(data._1, data._2, decodeBytes(data._3))
   }
 }
