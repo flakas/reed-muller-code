@@ -1,19 +1,18 @@
 package rmcode
 import java.io.File
 
-// Simetrinis kanalas
+// Symmetric channel
 class SymmetricChannel(errorRate: Double, q: Int) {
 
-  // Persiunčia vektorius kanalu su atsitiktiniu "seed"
+  // Transmits vectors with random seed
   def transmit(data: List[Vector[Int]]): List[Vector[Int]] = {
     transmit(data, (new scala.util.Random).nextInt())
   }
-  // Persiunčia vektorius kanalu su fiksuotu "seed"
+  // Transmits vectors with fixed seed
   def transmit(data: List[Vector[Int]], seed: Int): List[Vector[Int]] = {
     val random = new scala.util.Random(seed)
     data.map(c => {
-      // Prie kiekvieno duomenų vektoriaus pridedamas klaidos vektorius,
-      // Kurio kiekvienas bitas turi errorRate tikimybę pasikeisti
+      // Add an error vector to each transmitted vector
       val errorVector = (1 to c.length)
         .toVector
         .map(x => if (random.nextDouble() <= errorRate) 1 else 0)

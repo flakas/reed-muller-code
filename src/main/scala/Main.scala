@@ -3,7 +3,6 @@ import rmcode._
 
 import com.sksamuel.scrimage._
 
-// Vartotojo interfeiso konfigūracija
 case class Config(
   m: Int = 3,
   r: Int = 9,
@@ -20,73 +19,72 @@ case class Config(
 
 object Main extends App {
 
-  // Komandinės eilutės parametrų "parsinimas"
   val parser = new scopt.OptionParser[Config]("RMCode") {
     head("RMCode", "1.0")
     opt[Int]('m', "m") required() action { (x, c) =>
-      c.copy(m = x) } text("m parametras Rydo-Miulerio kodui") validate { x => if (x > 0) success else failure("Parametras m turi būti > 0") }
+      c.copy(m = x) } text("m parameter for Reed-Muller code") validate { x => if (x > 0) success else failure("Parameter m must be > 0") }
 
     opt[Int]('r', "r") required() action { (x, c) =>
-      c.copy(r = x) } text("r parametras Rydo-Miulerio kodui") validate { x => if (x > 0) success else failure("Parametras r turi būti > 0") }
+      c.copy(r = x) } text("r parameter for Reed-Muller code") validate { x => if (x > 0) success else failure("Parameter r must be > 0") }
 
     opt[Double]('p', "errorRate") required() action { (x, c) =>
-      c.copy(errorRate = x) } text("errorRate yra klaidos tikimybė perdavimo kanale") validate { x => if (x >= 0 && x <= 1) success else failure("Parametras errorRate turi būti 0<=errorRate<=1") }
+      c.copy(errorRate = x) } text("errorRate is the probability of an error during transmission") validate { x => if (x >= 0 && x <= 1) success else failure("Parameter errorRate must be 0<=errorRate<=1") }
 
     opt[String]('v', "inputVector") action { (x, c) =>
-      c.copy(inputVector = x) } text("inputVector yra įvedamas duomenų vektorius, persiuntimui kanalu")
+      c.copy(inputVector = x) } text("inputVector is a data vector to be sent via transmission channel")
 
     opt[String]('d', "decodeVector") action { (x, c) =>
-      c.copy(decodeVector = x) } text("decodeVector yra RM kodo vektorius, kuris bus dekoduojamas naudojant RM kodą, skirtas pridėti kiek reikia klaidų")
+      c.copy(decodeVector = x) } text("decodeVector is a vector of RM code, that will be decoded with given RM code. Use this to manually add transmission errors")
 
     opt[String]('i', "inputText") action { (x, c) =>
-      c.copy(inputText = x) } text("inputText yra įvesties tekstas, kuris bus siunčiamas kanalu")
+      c.copy(inputText = x) } text("inputText is a text that will be transmitted via transmission channel")
 
     opt[File]('i', "inputFile") valueName("<file>") action { (x, c) =>
-      c.copy(inputFile = x) } text("inputFile yra duomenų failo kelias (JPEG formato paveiksliukas), kuris bus persiunčiamas kanalu")
+      c.copy(inputFile = x) } text("inputFile is a path to a file (an image of JPEG format), that will be transmitted via a transmission channel")
     opt[File]('o', "outputFileCoded") valueName("<file>") action { (x, c) =>
-      c.copy(outputFileCoded = x) } text("outputFileCoded yra koduojant kanalu persiųsto paveiksliuko išsaugojimo vieta")
+      c.copy(outputFileCoded = x) } text("outputFileCoded path where the file transmitted via RM coded channel should be stored")
     opt[File]('c', "outputFileUncoded") valueName("<file>") action { (x, c) =>
-      c.copy(outputFileUncoded = x) } text("outputFileUncoded yra nekoduojant kanalu persiųsto paveiksliuko išsaugojimo vieta")
+      c.copy(outputFileUncoded = x) } text("outputFileUncoded is a path where the file transmitted via an uncoded channel should be stored")
 
-    help("help") text("Išspausdina šį pagalbos pranešimą")
-    note("""Naudojimo pavyzdžiai:
+    help("help") text("This help message")
+    note("""Usage examples:
 =====================
 
-# Norint persiųsti vektorių:
-  Privaloma nurodyti parametrus: m, r, errorRate, inputVector
-  Komandinės eilutės pvz.:
-    java -jar RMCode.jar --m <parametras m> --r <parametras r> --errorRate <parametras p> --inputVector "<persiunčiamas vektorius>"
-  Iškvietimo pvz.:
+# In order to send a vector:
+  Mandatory parameters: m, r, errorRate, inputVector
+  Command line sample:
+    java -jar RMCode.jar --m <parameter m> --r <parameter r> --errorRate <parameter p> --inputVector "<vector to be transmitted>"
+  Command line call sample pvz.:
     java -jar RMCode.jar --m 4 --r 2 --errorRate 0.2 --inputVector "10101010101"
-  Rezultatas:
-    Parodomas įvestas, užkoduotas nepersiųstas, užkoduotas persiųstas, klaidos, dekoduotas ir siųstas nekoduotas vektoriai
+  Result:
+    An input vector, encoded vector before transmission, encoded vector after transmission, error vector, decoded vector and transmitted vector without encoding will be displayed
 
-# Norint tik dekoduoti vektorių:
-  Privaloma nurodyti parametrus: m, r, errorRate, decodeVector
-  Komandinės eilutės pvz.:
-    java -jar RMCode.jar --m <parametras m> --r <parametras r> --errorRate <parametras p> --decodeVector "<dekoduojamas RM(m, r) kodo žodis>"
-  Iškvietimo pvz.:
+# In order to decode a vector:
+  Mandatory parameters: m, r, errorRate, decodeVector
+  Command line sample:
+    java -jar RMCode.jar --m <parameter m> --r <parameter r> --errorRate <parameter p> --decodeVector "<vector of code RM(m, r) to be decoded>"
+  Command line call sample:
     java -jar RMCode.jar --m 4 --r 2 --errorRate 0.2 --decodeVector "0010000111101001"
-  Rezultatas:
-    Parodomas dekoduotas vektorius decodeVector. Ši funkcija skirta norint rankiniu būdu įterpti klaidas prieš dekodavimą.
+  Result:
+    A decoded vector will be displayed. Purpose of this call is to manually insert transmission errors.
 
-# Norint persiųsti tekstą:
-  Privaloma nurodyti parametrus: m, r, errorRate, inputText
-  Komandinės eilutės pvz.:
-    java -jar RMCode.jar --m <parametras m> --r <parametras r> --errorRate <parametras p> --inputText "<persiunčiamas tekstas>"
-  Iškvietimo pvz.:
+# In order to transmit text:
+  Mandatory parameters: m, r, errorRate, inputText
+  Command line sample:
+    java -jar RMCode.jar --m <parameter m> --r <parameter r> --errorRate <parameter p> --inputText "<text to be transmitted>"
+  Command line call sample:
     java -jar RMCode.jar --m 4 --r 2 --errorRate 0.05 --inputText "abcdefghijklmnopqrstuvwxyz"
-  Rezultatas:
-    Parodomas tekstas, gautas persiunčiant koduotą tekstą ir nekoduotą tekstą.
+  Result:
+    Text transmitted via a coded channel and text transmitted via uncoded channel will be displayed.
 
-# Norint persiųsti paveiksliuką:
-  Privaloma nurodyti parametrus: m, r, errorRate, inputFile, outputFileCoded, outputFileUncoded
-  Komandinės eilutės pvz.:
-    java -jar RMCode.jar --m <parametras m> --r <parametras r> --errorRate <parametras p> --inputFile <duomenų JPEG formato paveiksliuko adresas> --outputFileCoded <koduoto JPEG formato paveiksliuko išvesties adresas> --outputFileUncoded <nekoduoto JPEG formato paveiksliuko išvesties adresas>
-  Iškvietimo pvz.:
+# In order to transmit an image:
+  Mandatory parameters: m, r, errorRate, inputFile, outputFileCoded, outputFileUncoded
+  Command line sample:
+    java -jar RMCode.jar --m <parameter m> --r <parameter r> --errorRate <parameter p> --inputFile <path of input JPEG image> --outputFileCoded <path where resulting transmitted coded image will be saved> --outputFileUncoded <path where resulting transmitted uncoded image will be saved>
+  Command line call sample:
     java -jar RMCode.jar --m 3 --r 1 --errorRate 0.05 --inputFile source.jpeg --outputFileCoded coded.jpeg --outputFileUncoded uncoded.jpeg
-  Rezultatas:
-    Išsaugomi persiųsto paveiksliuko inputFile rezultatai: koduojant paveiksliukas išsaugomas keliu outputFileCoded, nekoduojant paveiksliukas išsaugomas keliu outputFileUncoded""")
+  Result:
+    Image transmitted via channel with coding will be saved to outputFileCoded, image transmitted via channel with no coding will be saved to outputFileUncoded.""")
   }
 
   try {
@@ -98,35 +96,35 @@ object Main extends App {
         if (config.inputFile != null && config.outputFileCoded != null && config.outputFileUncoded != null) {
           // Send a file
 
-          println("Apdorojama koduojama paveiksliuko versija...")
-          // Koduojam, siunčiam, dekoduojam ir išsaugom paveiksliuką
+          println("Processing image transmission with encoding...")
+          // Encode, send, decode and save the image
           val encodedImage = code.encodeImage(config.inputFile)
           val transmittedImage = (encodedImage._1, encodedImage._2, (channel.transmit(encodedImage._3._1), encodedImage._3._2))
           val decodedImage = code.decodeImage(transmittedImage)
           decodedImage.writer(Format.JPEG).write(config.outputFileCoded)
 
-          println("Apdorojama nekoduojama paveiksliuko versija...")
-          // Skaidom baitus į vektorius, siunčiam, išsaugom paveiksliuką
+          println("Processing image transmission without encoding...")
+          // Turn bytes into vectors, transmit, turn resulting vectors back into image
           val uncodedImage = Image(config.inputFile)
           val uncodedImageVectors = code.convertBytesToVectors(Utils.imageToBytes(uncodedImage))
           val transmittedUncodedImage = Utils.bytesToImage(uncodedImage.width, uncodedImage.height, code.convertVectorsToBytes((channel.transmit(uncodedImageVectors._1), uncodedImageVectors._2)))
           transmittedUncodedImage.writer(Format.JPEG).write(config.outputFileUncoded)
-          println("Koduojamo persiuntimo rezultatas buvo išsaugotas į " +  config.outputFileCoded)
-          println("Nekoduojamo persiuntimo rezultatas buvo išsaugotas į " +  config.outputFileUncoded)
+          println("Transmitted image using coded channel was saved to     " +  config.outputFileCoded)
+          println("Transmitted image not using coded channel was saved to " +  config.outputFileUncoded)
 
         } else if (config.decodeVector != null) {
 
-          // Dekoduojam nurodytą vektorių ir jį parodom
+          // Decode given vector and show it
           val vector = config.decodeVector.map(x => if (x == '1') 1 else 0).toVector
           val decodedCodedVector = code.decode(List(vector)).head
           val decodedVector = new String(decodedCodedVector.map(x => if (x == 1) '1' else '0').toArray)
 
-          println("Dekoduojamas vektorius: " + config.decodeVector)
-          println("Dekoduotas vektorius:   " + decodedVector)
+          println("Vector to be decoded: " + config.decodeVector)
+          println("Decoded vector:       " + decodedVector)
 
         } else if (config.inputVector != null) {
 
-          // Koduojam, siunčiam, dekoduojam ir parodom vektorių
+          // Encode, transmit, decode and display the vector
           val seed = (new scala.util.Random).nextInt()
           val vector = config.inputVector.map(x => if (x == '1') 1 else 0).toVector
           val encodedVector = code.encode(List(vector))
@@ -148,7 +146,7 @@ object Main extends App {
             .zip(decodedVector)
             .map((x: (Char, Char)) => if (x._1 != x._2) 1 else 0).sum
 
-          // Vektorių siunčiam ir parodom be kodavimo
+          // Transmit the vector and display it
           val transmittedUncodedVector = channel.transmit(List(vector), seed)
           val receivedVector = new String(transmittedUncodedVector.head.map(x => if (x == 1) '1' else '0').toArray)
           val numberOfErrorsNoncode = List(vector).zip(transmittedUncodedVector).map(x =>
@@ -162,16 +160,16 @@ object Main extends App {
 
           val canRestoreErrors = (scala.math.pow(2, config.m - config.r) - 1) / 2
 
-          println("Duomenų vektorius                            " + config.inputVector)
-          println("Užkoduotas vektorius, prieš persiuntimą:     " + encodedVectorString)
-          println("Gautas užkoduotas vektorius, po persiuntimo: " + transmittedCodedVectorBits)
-          println("Klaidų vektorius:                            " + errorVectorString + " (" + numberOfErrorsCode + " klaidų persiuntime, galima atstatyti " + canRestoreErrors + " klaidų), klaidų pozicijos: " + errorPositions.mkString(", "))
-          println("Vektorius, gautas dekodavus:                 " + decodedVector + " (" + numberOfErrorBitsCoded + " neteisingi bitai)")
-          println("Vektorius, gautas persiuntus nekoduojant:    " + receivedVector + " (" + numberOfErrorsNoncode + " klaidų persiuntime, " + numberOfErrorBitsNonCoded + " neteisingi bitai)")
+          println("Data vector                                  " + config.inputVector)
+          println("Encoded vector, before transmission:         " + encodedVectorString)
+          println("Vector received after transmission:          " + transmittedCodedVectorBits)
+          println("Error vector:                                " + errorVectorString + " (" + numberOfErrorsCode + " transmission errors, " + canRestoreErrors + " errors can be restored), error positions: " + errorPositions.mkString(", "))
+          println("Vector after decoding      :                 " + decodedVector + " (" + numberOfErrorBitsCoded + " incorrect bits)")
+          println("Vector received without encoding:            " + receivedVector + " (" + numberOfErrorsNoncode + " transmission errors, " + numberOfErrorBitsNonCoded + " incorrect bits)")
 
         } else if (config.inputText != null) {
 
-          // Tekstą koduojam, siunčiam, dekoduojam ir parodom
+          // Encode, transmit, decode and display text
           val seed = (new scala.util.Random).nextInt()
           val encodedText = code.encodeText(config.inputText)
           val transmittedCodedText = (channel.transmit(encodedText._1, seed), encodedText._2)
@@ -182,7 +180,7 @@ object Main extends App {
                   .sum
               ).sum
 
-          // Tekstą transformuojam į vektorius, siunčiam, verčiam atgal į tekstą ir parodom
+          // Transform text to vectors, transmit, turn vectors back to text and display it
           val textVectors = code.convertBytesToVectors(Utils.textToBytes(config.inputText))
           val transmittedUncodedText = (channel.transmit(textVectors._1, seed), textVectors._2)
           val receivedText = Utils.bytesToText(code.convertVectorsToBytes(transmittedUncodedText))
@@ -192,17 +190,17 @@ object Main extends App {
                   .sum
               ).sum
 
-          println("Duomenų tekstas:                " + config.inputText)
-          println("Persiųstas dekoduotas tekstas:  " + decodedCodedText + " (" + numberOfErrorsCode + " klaidų perdavime)")
-          println("Persiųstas tekstas be kodavimo: " + receivedText + " (" + numberOfErrorsNoncode + " klaidų perdavime)")
+          println("Data text:                                " + config.inputText)
+          println("Received transmitted text with coding:    " + decodedCodedText + " (" + numberOfErrorsCode + " errors in transmission)")
+          println("Received transmitted text without coding: " + receivedText + " (" + numberOfErrorsNoncode + " errors in transmission)")
         } else {
-          println("Blogi argumentai. Paleiskite dar kartą su '--help', jei norite pamatyti teisingo iškvietimo pavyzdžių")
+          println("Bad arguments. Please try again with '--help', if you want to see some examples for running this")
         }
       } else {
-        println("Turi būti patenkinta sąlyga m > r > 0")
+        println("Condition m > r > 0 must be satisfied")
       }
     } getOrElse {
-      println("Blogi argumentai. Paleiskite dar kartą su '--help', jei norite pamatyti teisingo iškvietimo pavyzdžių")
+      println("Bad arguments. Please try again with '--help', if you want to see some examples for running this")
     }
   } catch {
     case e : Exception => println(e.getMessage)

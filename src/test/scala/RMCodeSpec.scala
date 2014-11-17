@@ -7,6 +7,6 @@ import org.scalacheck.Arbitrary._
 //import org.scalacheck.Prop.{forAll, BooleanOperators}
 
 class RMCodeSpec extends FlatSpec with Matchers with Checkers {
-
+  // Tests?
 }
 
